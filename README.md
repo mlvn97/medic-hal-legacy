@@ -1,6 +1,6 @@
 # 🩺 Santé Connect — API de Prise de Rendez-vous Médicaux
 
-[![PHP Version](https://img.shields.io/badge/PHP-8.1%2B%20%7C%208.2%2B%20%7C%208.3%2B%20%7C%208.4%2B%20%7C%208.5%2B-blue.svg)](https://php.net)
+[![PHP Version](https://img.shields.io/badge/PHP-8.3%2B-blue.svg)](https://php.net)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/Tests-10%2F10%20Pass-brightgreen.svg)]()
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0.3-orange.svg)]()
@@ -93,12 +93,15 @@ Le projet applique les principes de la **Clean Architecture** / **Architecture H
 ## 🚀 Démarrage Rapide
 
 ### 1. Prérequis
-- **PHP 8.1+** (compatible 8.2, 8.3, 8.4, 8.5)
+- **PHP 8.3+**
 - **Composer**
 
 ### 2. Installation des dépendances et de l'autoloader
+
+Pour la première installation, déplacer l'ancien dossier `vendor/` hors du projet afin que Composer reconstruise les dépendances à partir de `composer.lock`.
+
 ```bash
-composer dump-autoload
+composer install
 ```
 
 ### 3. Initialiser les données de démonstration (Seed)
@@ -119,9 +122,23 @@ La spécification OpenAPI 3.0 au format JSON est accessible sur **`http://127.0.
 
 ---
 
+## Calendrier personnel iCal
+
+Définir `PRACTITIONER_ICAL_CALENDARS` dans l'environnement du processus PHP. La valeur est un objet JSON qui associe chaque identifiant de praticien à son flux HTTPS ou au chemin absolu d'un fichier `.ics` lisible par PHP.
+
+```json
+{"pract-101":{"source":"https://agenda.example/calendrier.ics","timezone":"Europe/Paris"}}
+```
+
+Le fuseau indiqué s'applique aux événements sans fuseau explicite et aux journées entières. Sa valeur par défaut est `Europe/Paris`. Configurer uniquement des sources approuvées côté serveur et garder les URL privées dans la configuration du déploiement.
+
+La création et le report consultent le calendrier après les contrôles habituels. Un événement occupé qui chevauche le créneau renvoie `409`. Un calendrier configuré mais illisible renvoie `503` sans modifier les rendez-vous. La liste des créneaux repose sur les disponibilités internes. Pour revenir au comportement précédent, retirer le praticien de la configuration ou supprimer la variable.
+
+Avec les données de démonstration, `composer start:demo-calendar` associe le calendrier local de Sophie Martin (`pract-101`) au serveur. L'événement récurrent bloque le lundi de 11 h à 11 h 30, heure de Paris. Utiliser une base de démonstration pour essayer une réservation.
+
 ## 🧪 Exécution des Tests
 
-Le projet inclut une suite de tests unitaires et de scénarios d'intégration pour la gestion documentaire :
+La suite couvre les réservations, les disponibilités, les patients, les praticiens et le retrait de l'ancienne API documentaire.
 
 ```bash
 composer test

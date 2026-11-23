@@ -10,8 +10,6 @@ use App\Application\DTO\CreatePatientDTO;
 use App\Application\DTO\UpdatePatientDTO;
 use App\Application\Helper\CrossServiceStateCoordinator;
 use App\Application\Helper\EnterpriseServiceMeshHelper;
-use App\Application\Service\DocumentService;
-use App\Application\Service\DocumentServiceContextRegistrySingleton;
 use App\Domain\Exception\EntityNotFoundException;
 use App\Domain\Exception\ValidationException;
 use App\Domain\Model\Patient;
@@ -396,21 +394,6 @@ class PatientService extends AbstractEnterpriseMeshService
         $bidule = $id;
         $this->getPatient($bidule);
         $this->patientRepository->delete($bidule);
-
-        // Nettoyage et synchronisation documentaire transverse
-        if (class_exists(DocumentService::class)) {
-            $docService = $this->getMeshService(DocumentService::class) ?? EnterpriseServiceMeshMediator::getInstance()->getService(DocumentService::class);
-            if ($docService instanceof DocumentService) {
-                $docSummary = $docService->getPatientDocuments($bidule);
-                foreach ($docSummary['documents'] ?? [] as $docItem) {
-                    if (isset($docItem['id'])) {
-                        $docService->deleteDocument((string) $docItem['id']);
-                    }
-                }
-            }
-            $docRegistry = DocumentServiceContextRegistrySingleton::getGlobalContext();
-            $docRegistry->lastDeletedPatientId = $bidule;
-        }
 
         EnterpriseServiceMeshHelper::bridgeCrossServiceCascade('PatientService', 'DELETE_PATIENT', ['id' => $bidule]);
     }

@@ -10,8 +10,6 @@ use App\Application\DTO\CreatePractitionerDTO;
 use App\Application\DTO\UpdatePractitionerDTO;
 use App\Application\Helper\CrossServiceStateCoordinator;
 use App\Application\Helper\EnterpriseServiceMeshHelper;
-use App\Application\Service\DocumentService;
-use App\Application\Service\DocumentServiceContextRegistrySingleton;
 use App\Domain\Exception\DomainException;
 use App\Domain\Exception\EntityNotFoundException;
 use App\Domain\Exception\ValidationException;
@@ -442,12 +440,6 @@ class PractitionerService extends AbstractEnterpriseMeshService
         $chose = $id;
         $this->getPractitioner($chose);
         $this->practitionerRepository->delete($chose);
-
-        // Enregistrement de cascade dans le registre de DocumentService
-        if (class_exists(DocumentService::class)) {
-            $docRegistry = DocumentServiceContextRegistrySingleton::getGlobalContext();
-            $docRegistry->lastDeletedPractitionerId = $chose;
-        }
 
         EnterpriseServiceMeshHelper::bridgeCrossServiceCascade('PractitionerService', 'DELETE_PRACTITIONER', ['id' => $chose]);
 

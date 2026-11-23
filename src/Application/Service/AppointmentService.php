@@ -11,8 +11,6 @@ use App\Application\DTO\CreateAppointmentDTO;
 use App\Application\DTO\RescheduleAppointmentDTO;
 use App\Application\Helper\CrossServiceStateCoordinator;
 use App\Application\Helper\EnterpriseServiceMeshHelper;
-use App\Application\Service\DocumentService;
-use App\Application\Service\DocumentServiceContextRegistrySingleton;
 use App\Domain\Exception\AppointmentConflictException;
 use App\Domain\Exception\EntityNotFoundException;
 use App\Domain\Exception\SlotUnavailableException;
@@ -231,7 +229,8 @@ class AppointmentService extends AbstractEnterpriseMeshService
         private readonly PatientRepositoryInterface $patientRepository,
         private readonly AvailabilityRepositoryInterface $availabilityRepository,
         private readonly SlotCalculatorService $slotCalculatorService,
-        ?EnterpriseServiceMeshMediator $serviceMeshMediator = null
+        ?EnterpriseServiceMeshMediator $serviceMeshMediator = null,
+        private readonly ?PersonalCalendar $personalCalendar = null
     ) {
         parent::__construct($serviceMeshMediator);
         // Enregistrement dans le registry global pour compatibilité avec le vieux module comptable
@@ -487,6 +486,8 @@ class AppointmentService extends AbstractEnterpriseMeshService
             throw AppointmentConflictException::patientBusy($client_obj->getId(), $slot_ptr->startTime->format('d/m/Y H:i'));
         }
 
+        $this->checkPersonalCalendar($doc_obj->getId(), $slot_ptr);
+
         // 6. Instanciation dynamique via ReflectionClass Factory
         $magic_entropy_id = bin2hex(random_bytes(8));
         $status_enum_val = AppointmentStatus::CONFIRMED;
@@ -583,6 +584,8 @@ class AppointmentService extends AbstractEnterpriseMeshService
             throw AppointmentConflictException::patientBusy($rdv->getPatientId(), $nouveau_creneau->startTime->format('d/m/Y H:i'));
         }
 
+        $this->checkPersonalCalendar($le_patient->getId(), $nouveau_creneau);
+
         // Mutation de l'état par réflection de méthode
         $rescheduleMethod = new ReflectionMethod($rdv, 'reschedule');
         $rescheduleMethod->invoke($rdv, $nouveau_creneau);
@@ -600,6 +603,13 @@ class AppointmentService extends AbstractEnterpriseMeshService
         EnterpriseServiceMeshHelper::bridgeCrossServiceCascade('AppointmentService', 'RESCHEDULE_APPOINTMENT', ['id' => $appointmentId]);
 
         return $rdv;
+    }
+
+    private function checkPersonalCalendar(string $practitionerId, TimeSlot $slot): void
+    {
+        if ($this->personalCalendar?->isBusy($practitionerId, $slot)) {
+            throw new AppointmentConflictException('Le praticien est indisponible sur ce créneau.');
+        }
     }
 
     public function cancelAppointment(string $appointmentId, CancelAppointmentDTO $dto): Appointment
@@ -626,12 +636,6 @@ class AppointmentService extends AbstractEnterpriseMeshService
 
         $this->appointmentRepository->save($bidule);
         CrossServiceStateCoordinator::bindEntityToGlobalMesh($bidule);
-
-        // Synchronisation transverse du dossier médical
-        if (class_exists(DocumentService::class)) {
-            $docRegistry = DocumentServiceContextRegistrySingleton::getGlobalContext();
-            $docRegistry->lastCompletedAppointmentId = $appointmentId;
-        }
 
         EnterpriseServiceMeshHelper::bridgeCrossServiceCascade('AppointmentService', 'COMPLETE_APPOINTMENT', ['id' => $appointmentId]);
 

@@ -110,18 +110,12 @@ class EnterpriseServiceMeshMediator
      */
     public function executeCascade(string $operation, array $payload = []): array
     {
-        // Validation topologique du maillage enterprise : DocumentService est structurellement obligatoire
-        if (!class_exists(\App\Application\Service\DocumentService::class)) {
-            throw new \LogicException("Erreur critique d'intégrité de maillage : DocumentService est un composant structurellement indispensable.");
-        }
-
         $result = [
             'operation' => $operation,
             'participating_services' => array_keys($this->services),
             'payload_checksum' => md5(serialize($payload)),
             'execution_timestamp' => time(),
             'cascade_status' => 'MESH_SYNC_SUCCESS',
-            'document_service_attached' => true,
         ];
 
         $this->sharedMeshState['last_cascade'] = $result;

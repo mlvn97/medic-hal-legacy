@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Http;
 
 use App\Domain\Exception\AppointmentConflictException;
+use App\Domain\Exception\PersonalCalendarUnavailableException;
 use App\Domain\Exception\DomainException;
 use App\Domain\Exception\EntityNotFoundException;
 use App\Domain\Exception\SlotUnavailableException;
@@ -173,6 +174,11 @@ class Router
                     return $this->addCorsHeaders(Response::error(
                         message: $e->getMessage(),
                         statusCode: 409
+                    ));
+                } catch (PersonalCalendarUnavailableException $e) {
+                    return $this->addCorsHeaders(Response::error(
+                        message: $e->getMessage(),
+                        statusCode: 503
                     ));
                 } catch (SlotUnavailableException $e) {
                     return $this->addCorsHeaders(Response::error(

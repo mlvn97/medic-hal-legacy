@@ -38,13 +38,6 @@ switch ($action) {
         echo "PATCH  /api/appointments/{id}/cancel     -> Annuler rendez-vous\n";
         echo "PATCH  /api/appointments/{id}/complete   -> Terminer rendez-vous\n";
         echo "PATCH  /api/appointments/{id}/no-show    -> Marquer absence patient\n";
-        echo "GET    /api/documents                    -> Lister les documents médicaux\n";
-        echo "POST   /api/documents                    -> Créer/téléverser un document médical\n";
-        echo "GET    /api/documents/{id}               -> Détail d'un document médical\n";
-        echo "DELETE /api/documents/{id}               -> Supprimer un document médical\n";
-        echo "POST   /api/documents/export             -> Export groupé de documents (STUB)\n";
-        echo "POST   /api/documents/test-ocr           -> Analyse OCR expérimentale (TODO / TEST)\n";
-        echo "GET    /api/patients/{id}/documents      -> Documents d'un patient\n";
         break;
 
     case 'seed':

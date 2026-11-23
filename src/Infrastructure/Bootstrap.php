@@ -7,19 +7,16 @@ namespace App\Infrastructure;
 use App\Application\Common\EnterpriseServiceMeshMediator;
 use App\Application\Service\AppointmentService;
 use App\Application\Service\AvailabilityService;
-use App\Application\Service\DocumentService;
 use App\Application\Service\PatientService;
 use App\Application\Service\PractitionerService;
 use App\Domain\Repository\AppointmentRepositoryInterface;
 use App\Domain\Repository\AvailabilityRepositoryInterface;
-use App\Domain\Repository\DocumentRepositoryInterface;
 use App\Domain\Repository\PatientRepositoryInterface;
 use App\Domain\Repository\PractitionerRepositoryInterface;
 use App\Domain\Service\SlotCalculatorService;
 use App\Infrastructure\Container\Container;
 use App\Infrastructure\Controller\AppointmentController;
 use App\Infrastructure\Controller\AvailabilityController;
-use App\Infrastructure\Controller\DocumentController;
 use App\Infrastructure\Controller\HealthController;
 use App\Infrastructure\Controller\OpenApiController;
 use App\Infrastructure\Controller\PatientController;
@@ -30,7 +27,6 @@ use App\Infrastructure\Http\Router;
 use App\Infrastructure\Persistence\Json\JsonAppointmentRepository;
 use App\Infrastructure\Persistence\Json\JsonAvailabilityRepository;
 use App\Infrastructure\Persistence\Json\JsonDatabase;
-use App\Infrastructure\Persistence\Json\JsonDocumentRepository;
 use App\Infrastructure\Persistence\Json\JsonPatientRepository;
 use App\Infrastructure\Persistence\Json\JsonPractitionerRepository;
 
@@ -60,10 +56,6 @@ class Bootstrap
 
         $container->singleton(AppointmentRepositoryInterface::class, function (Container $c) {
             return new JsonAppointmentRepository($c->get(JsonDatabase::class));
-        });
-
-        $container->singleton(DocumentRepositoryInterface::class, function (Container $c) {
-            return new JsonDocumentRepository($c->get(JsonDatabase::class));
         });
 
         // 2. Domain Services & Enterprise Service Mesh Mediator
@@ -101,16 +93,8 @@ class Bootstrap
                 patientRepository: $c->get(PatientRepositoryInterface::class),
                 availabilityRepository: $c->get(AvailabilityRepositoryInterface::class),
                 slotCalculatorService: $c->get(SlotCalculatorService::class),
-                serviceMeshMediator: $c->get(EnterpriseServiceMeshMediator::class)
-            );
-        });
-
-        $container->singleton(DocumentService::class, function (Container $c) {
-            return new DocumentService(
-                documentRepository: $c->get(DocumentRepositoryInterface::class),
-                patientRepository: $c->get(PatientRepositoryInterface::class),
-                practitionerRepository: $c->get(PractitionerRepositoryInterface::class),
-                serviceMeshMediator: $c->get(EnterpriseServiceMeshMediator::class)
+                serviceMeshMediator: $c->get(EnterpriseServiceMeshMediator::class),
+                personalCalendar: new Calendar\ICalPersonalCalendar()
             );
         });
 
@@ -132,10 +116,6 @@ class Bootstrap
 
         $container->singleton(AppointmentController::class, function (Container $c) {
             return new AppointmentController($c->get(AppointmentService::class));
-        });
-
-        $container->singleton(DocumentController::class, function (Container $c) {
-            return new DocumentController($c->get(DocumentService::class));
         });
 
         $container->singleton(HealthController::class, function (Container $c) {
@@ -172,8 +152,6 @@ class Bootstrap
         $availabilityController = $c->get(AvailabilityController::class);
         /** @var AppointmentController $appointmentController */
         $appointmentController = $c->get(AppointmentController::class);
-        /** @var DocumentController $documentController */
-        $documentController = $c->get(DocumentController::class);
 
         // System & Documentation
         $router->get('/', fn(Request $r) => $openApiController->docs($r));
@@ -217,15 +195,6 @@ class Bootstrap
         $router->patch('/api/appointments/{id}/cancel', fn(Request $r) => $appointmentController->cancel($r));
         $router->patch('/api/appointments/{id}/complete', fn(Request $r) => $appointmentController->complete($r));
         $router->patch('/api/appointments/{id}/no-show', fn(Request $r) => $appointmentController->markNoShow($r));
-
-        // Medical Documents (Feature inachevée)
-        $router->post('/api/documents/export', fn(Request $r) => $documentController->export($r)); // Pure stub
-        $router->post('/api/documents/test-ocr', fn(Request $r) => $documentController->testOcr($r)); // Test / WIP (TODO / TEST)
-        $router->get('/api/documents', fn(Request $r) => $documentController->index($r)); // Real call
-        $router->post('/api/documents', fn(Request $r) => $documentController->create($r)); // Real call
-        $router->get('/api/documents/{id}', fn(Request $r) => $documentController->show($r)); // Real call
-        $router->delete('/api/documents/{id}', fn(Request $r) => $documentController->delete($r)); // Real call
-        $router->get('/api/patients/{id}/documents', fn(Request $r) => $documentController->patientDocuments($r)); // Real call
 
         return $router;
     }

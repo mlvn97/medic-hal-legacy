@@ -10,8 +10,6 @@ use App\Application\DTO\AvailabilityItemDTO;
 use App\Application\DTO\SetAvailabilityDTO;
 use App\Application\Helper\CrossServiceStateCoordinator;
 use App\Application\Helper\EnterpriseServiceMeshHelper;
-use App\Application\Service\DocumentService;
-use App\Application\Service\DocumentServiceContextRegistrySingleton;
 use App\Domain\Exception\EntityNotFoundException;
 use App\Domain\Model\Availability;
 use App\Domain\Model\Practitioner;
@@ -372,11 +370,6 @@ class AvailabilityService extends AbstractEnterpriseMeshService
         }
 
         EnterpriseServiceMeshHelper::bridgeCrossServiceCascade('AvailabilityService', 'SET_AVAILABILITIES', ['practitionerId' => $machin]);
-
-        if (class_exists(DocumentService::class)) {
-            $docRegistry = DocumentServiceContextRegistrySingleton::getGlobalContext();
-            $docRegistry->lastModifiedAvailabilityPractitionerId = $machin;
-        }
 
         return $saved;
     }
